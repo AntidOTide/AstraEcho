@@ -11,7 +11,7 @@ from openai import OpenAI, NOT_GIVEN
 
 from astra_tools import AstraTools
 from qq_bot import QQBot
-from utils import load_json_file, write_json_file
+from utils import load_json_file, write_json_file, get_parent_path
 
 
 class AstraEcho:
@@ -19,6 +19,7 @@ class AstraEcho:
         self.nickname: str | None = None
         self.sender: str | None = None
         self.uid: int | None = None
+        self.raw_message: str | None = None
         self.llm_bot_server: Flask = Flask(__name__)
         self.tools: AstraTools | NOT_GIVEN
         self.config_data_path = "../config/config.json"
@@ -114,17 +115,29 @@ class AstraEcho:
     def _process_message(self, data: dict):
         if data['post_type'] == "message":
             if data.get('message_type') == 'private':
+                self._get_private_message_info()
                 if self._process_message_command_private():  # 如果是私聊信息
                     return "ok"
                 self._process_private_message()
             elif data.get('message_type') == 'group':
+                message = data.get('raw_message')
                 self.gid = request.get_json().get('group_id')  # 群号
                 self.uid = request.get_json().get('sender').get('user_id')  # 发言者的qq号
-                message = data.get('raw_message')
-                if str("[CQ:at,qq=%s]" % self.qq_no) in message:
-                    message = str(message).replace(str("[CQ:at,qq=%s]" % self.qq_no), '')
+                if str("[CQ:at,qq=2265917047,") in message:
+                    print("msg" + message)
+                    pattern = r'\[CQ:at,qq=2265917047,name=[^\]]+\]'
+                    # 使用 re.sub 替换匹配到的内容为空字符串
+                    result = re.sub(pattern, '', message)
+                    # 返回处理后的字
+                    message = result.strip()
+                    print("replaced msg" + message)
                     self._process_message_command_group(message)
-                pass
+
+    def _get_private_message_info(self):
+        self.sender = self.session_data.get('sender')  # 获取发送者信息
+        self.uid = int(self.sender.get('user_id'))  # 获取信息发送者的 QQ号码
+        self.nickname = self.sender.get('nickname')  # 获取信息发送者的 QQ昵称
+        self.raw_message = self.session_data.get('raw_message')
 
     def _process_message_command_private(self) -> bool:
         command_dict = {
@@ -132,9 +145,9 @@ class AstraEcho:
             "/更改人格 + 你需要设定的人格 ": "更改当前会话中的人格"
 
         }
-        message = self.session_data.get('raw_message')
         memory_json = self._load_private_memory()
-        if message.strip().startswith("/获取会话"):
+        resp = ""
+        if self.raw_message.strip().startswith("/获取会话"):
             resp = "当前会话信息为：\n"
             resp += f"窗口类型:\n"
             resp += f"QQ:{self.uid}+\n"
@@ -146,67 +159,70 @@ class AstraEcho:
             else:
                 resp += f"人格:未找到配置，人格文件出错！\n"
             resp += f"AstraEchoAI名称:{memory_json['config']['AI_Name']}"
-
-        if message.strip().startswith("/"):
+        elif self.raw_message.strip().startswith("/jm"):
+            print(message)
+            id = self._jm_download(message)
+        elif self.raw_message.strip().startswith("/"):
             resp = "test"
 
         else:
             return False
+        print("resp" + resp)
         self.send_message.send_private_message(url=self.qq_bot_url, uid=self.uid, message=resp)
         return True
 
     def _jm_download(self, command: str):
-        command_list = command.split('')
+        command_list = command.split()
+        print(command_list)
         option: JmOption
+        option = jmcomic.create_option('option.yml')
         if command_list[0] != "/jm" or len(command_list) == 1:
             return "Error"
 
-        if len(command_list) > 3:
+        if len(command_list) > 2:
             for command in command_list:
                 if command == "-pdf":
                     option.call_all_plugin("save_pdf")
-        jmcomic.download_album(command_list[1])
+        jmcomic.download_album(command_list[1], option=option)
         # pdf =open(f"../pdf/{command_list[1]}/{command_list[1].pdf}", 'rb')
         return command_list[1]
 
-    def _process_message_command_group(self) -> bool:
+    def _process_message_command_group(self, message: str) -> bool:
         command_dict = {
             "/jm": "获取当前会话信息",
         }
-        message = self.session_data.get('raw_message')
         if message.strip().startswith("/获取会话"):
             resp = "当前会话信息为：\n"
             resp += f"窗口类型:\n"
-            resp += f"QQ:{self.uid}+\n"
-            resp += f"昵称:{self.nickname}+\n"
-            resp += f"模型:{self.model}+\n"
+            resp += f"QQ:{self.uid}\n"
+            resp += f"昵称:{self.nickname}\n"
+            resp += f"模型:{self.model}\n"
             role_dict = memory_json['memory'][0]
             if role_dict['role'] == "system":
-                resp += f"人格:{role_dict['content']}\n"
+                resp += f"人格:\n{role_dict['content']}\n"
             else:
                 resp += f"人格:未找到配置，人格文件出错！\n"
             resp += f"AstraEchoAI名称:{memory_json['config']['AI_Name']}"
         elif message.strip().startswith("/jm"):
             id = self._jm_download(message)
+            print(id)
+            file_path = get_parent_path()
+            self.send_message.send_group_file(url=self.qq_bot_url, gid=self.gid,
+                                              file_path=file_path + f"\pdf\{id}.pdf",
+                                              name=f"{id}.pdf")
         elif message.strip().startswith("/"):
             resp = "test"
 
         else:
             return False
-        self.send_message.send_group_file(url=self.qq_bot_url, gid=self.gid,
-                                          file_path=f"../pdf/{id}/{id}.pdf",
-                                          name=id)
+
         return True
 
     def _process_private_message(self):
         """处理私人信息"""
-        self.sender = self.session_data.get('sender')  # 获取发送者信息
-        message = self.session_data.get('raw_message')  # 获取原始信息
-        self.uid = int(self.sender.get('user_id'))  # 获取信息发送者的 QQ号码
-        self.nickname = self.sender.get('nickname')  # 获取信息发送者的 QQ昵称
-        logger.info(f"收到私聊消息:{self.nickname}<{self.uid}>:{message}")
+        logger.info(f"收到私聊消息:{self.nickname}<{self.uid}>:{self.raw_message}")
         memory_json = self._load_private_memory()
-        memory_json['memory'].append({'role': 'user', 'content': message})
+        memory_json['memory'].append({'role': 'user', 'content': self.raw_message})
         chat_message = copy.deepcopy(memory_json['memory'])
         answer = ''
         if self.request_method == "local":
@@ -226,14 +242,12 @@ class AstraEcho:
                     answer = self._run_chat_openai(chat_message)
             except TypeError as t:
                 print("本次对话无工具调用")
-
         resp = answer.choices[0].message.content
         logger.info(f"{self.model}模型返回消息:{resp}")
         if '<think>' in resp:
             pattern = r'<think>.*?</think>'
             resp = re.sub(pattern, '', resp, flags=re.DOTALL).strip()
         memory_json['memory'].append({'role': 'assistant', 'content': resp})
-        # print(memory_json)
         if self.is_write_memory:
             self._write_private_memory(memory_json)
         self.send_message.send_private_message(url=self.qq_bot_url, uid=self.uid, message=resp)
