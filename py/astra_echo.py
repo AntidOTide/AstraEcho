@@ -3,7 +3,9 @@ import json
 import os
 import re
 
+import jmcomic
 from flask import Flask, render_template, request, redirect, url_for
+from jmcomic import JmOption
 from loguru import logger
 from openai import OpenAI, NOT_GIVEN
 
@@ -28,7 +30,7 @@ class AstraEcho:
         self.debug_mode = self.config_data['AstraEcho']['debug_mode']
         self.is_use_tools = self.config_data['AstraEcho']['is_use_tools']
         self.output_method = self.config_data['AstraEcho']['output_method']
-
+        self.qq_no = self.config_data['qq_bot']['qq_no']
 
         if self.is_use_tools:
             self.tools = AstraTools()
@@ -52,7 +54,6 @@ class AstraEcho:
 
         else:
             raise ValueError("Invalid configuration provided. Please check your config.")
-
 
         self.client = OpenAI(
             base_url=self.api_base,
@@ -116,6 +117,14 @@ class AstraEcho:
                 if self._process_message_command_private():  # 如果是私聊信息
                     return "ok"
                 self._process_private_message()
+            elif data.get('message_type') == 'group':
+                self.gid = request.get_json().get('group_id')  # 群号
+                self.uid = request.get_json().get('sender').get('user_id')  # 发言者的qq号
+                message = data.get('raw_message')
+                if str("[CQ:at,qq=%s]" % self.qq_no) in message:
+                    message = str(message).replace(str("[CQ:at,qq=%s]" % self.qq_no), '')
+                    self._process_message_command_group(message)
+                pass
 
     def _process_message_command_private(self) -> bool:
         command_dict = {
@@ -146,6 +155,49 @@ class AstraEcho:
         self.send_message.send_private_message(url=self.qq_bot_url, uid=self.uid, message=resp)
         return True
 
+    def _jm_download(self, command: str):
+        command_list = command.split('')
+        option: JmOption
+        if command_list[0] != "/jm" or len(command_list) == 1:
+            return "Error"
+
+        if len(command_list) > 3:
+            for command in command_list:
+                if command == "-pdf":
+                    option.call_all_plugin("save_pdf")
+        jmcomic.download_album(command_list[1])
+        # pdf =open(f"../pdf/{command_list[1]}/{command_list[1].pdf}", 'rb')
+        return command_list[1]
+
+    def _process_message_command_group(self) -> bool:
+        command_dict = {
+            "/jm": "获取当前会话信息",
+        }
+        message = self.session_data.get('raw_message')
+        if message.strip().startswith("/获取会话"):
+            resp = "当前会话信息为：\n"
+            resp += f"窗口类型:\n"
+            resp += f"QQ:{self.uid}+\n"
+            resp += f"昵称:{self.nickname}+\n"
+            resp += f"模型:{self.model}+\n"
+            role_dict = memory_json['memory'][0]
+            if role_dict['role'] == "system":
+                resp += f"人格:{role_dict['content']}\n"
+            else:
+                resp += f"人格:未找到配置，人格文件出错！\n"
+            resp += f"AstraEchoAI名称:{memory_json['config']['AI_Name']}"
+        elif message.strip().startswith("/jm"):
+            id = self._jm_download(message)
+        elif message.strip().startswith("/"):
+            resp = "test"
+
+        else:
+            return False
+        self.send_message.send_group_file(url=self.qq_bot_url, gid=self.gid,
+                                          file_path=f"../pdf/{id}/{id}.pdf",
+                                          name=id)
+        return True
+
     def _process_private_message(self):
         """处理私人信息"""
         self.sender = self.session_data.get('sender')  # 获取发送者信息
@@ -173,9 +225,7 @@ class AstraEcho:
                         {"role": "tool", "tool_call_id": is_tools_call.id, "content": str(tools_return)})
                     answer = self._run_chat_openai(chat_message)
             except TypeError as t:
-                print(t)
                 print("本次对话无工具调用")
-
 
         resp = answer.choices[0].message.content
         logger.info(f"{self.model}模型返回消息:{resp}")
