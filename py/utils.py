@@ -1,8 +1,10 @@
+import asyncio
 import json
 import os
 
+import aiofiles
 import requests
-from openai import OpenAI
+from openai import OpenAI, AsyncOpenAI
 
 
 # import tiktoken
@@ -19,11 +21,34 @@ def get_parent_path():
     return parent_dir
 
 
-def load_json_file(path: str) -> dict:
-    with open(path, "r", encoding="utf-8") as f:
-        file = f.read()
-        config_data = json.loads(file)
-        return config_data
+def load_json_file(file_path: str) -> dict:
+    try:
+        with open(file_path, "r", encoding="utf-8") as f:
+            file = f.read()
+            config_data = json.loads(file)
+            return config_data
+    except FileNotFoundError:
+        raise ValueError(f"File not found: {file_path}")
+    except json.JSONDecodeError:
+        raise ValueError(f"Invalid JSON format in file: {file_path}")
+
+
+async def load_json_file_async(file_path):
+    """
+    异步读取 JSON 文件并解析为 Python 字典。
+    :param file_path: JSON 文件路径
+    :return: 解析后的 Python 字典
+    """
+    try:
+        # 使用 aiofiles 异步打开文件
+        async with aiofiles.open(file_path, mode='r', encoding='utf-8') as f:
+            content = await f.read()  # 异步读取文件内容
+            data = json.loads(content)  # 将文件内容解析为 JSON
+        return data
+    except FileNotFoundError:
+        raise ValueError(f"File not found: {file_path}")
+    except json.JSONDecodeError:
+        raise ValueError(f"Invalid JSON format in file: {file_path}")
 
 
 def write_json_file(path: str, data: dict):
@@ -40,31 +65,34 @@ def write_json_file(path: str, data: dict):
 #     return num_tokens
 
 def send_post_request(
-        url:str,
-        data:dict
+        url: str,
+        data: dict
 ):
-    resp =requests.request("POST",url=url,data=data)
+    resp = requests.request("POST", url=url, data=data)
     return resp
 
+
 def send_openai_request(
-        api_key:str,
-        api_base:str,
-        model:str,
-        text:str,
-        tools:list[dict]|None
+        api_key: str,
+        api_base: str,
+        model: str,
+        text: str,
+        tools: list[dict] | None
 ):
-    client =OpenAI(
+    client = OpenAI(
         api_key=api_key,
         base_url=api_base
     )
-    resp =client.chat.completions.create(
+    resp = client.chat.completions.create(
         model=model,
-        messages=[{"role":"user","content":text}],
+        messages=[{"role": "user", "content": text}],
         tools=tools,
         timeout=10,
         top_p=1
     )
     return resp
+
+
 def search_serper_online(question, api_key):
     url = "https://cn2us02.opapi.win/api/v1/openapi/search/serper/v1"
     payload = {
@@ -147,20 +175,25 @@ def chat_with_gpt(user):
     resp = resp_json['choices'][0]['message']['content']
     return resp
 
-def chat_deepseek_in_openai():
-    from openai import OpenAI
-    client = OpenAI(api_key="sk-pHWCo00H54775580D97CT3BlbKFJ3e794eD16949431A84d1", base_url="https://cn2us02.opapi.win/v1/")
+
+async def chat_deepseek_in_openai():
+    client = AsyncOpenAI(
+        api_key="sk-pHWCo00H54775580D97CT3BlbKFJ3e794eD16949431A84d1",
+        base_url="https://cn2us02.opapi.win/v1/")
 
     # Round 1
     messages = [{"role": "user", "content": "9.11 and 9.8, which is greater?"}]
-    response = client.chat.completions.create(
-        model="deepseek-reasoner",
+    response = await client.chat.completions.create(
+        model="gpt-4o-mini",
         messages=messages
     )
 
-    reasoning_content = response.choices[0].message.reasoning_content
+    # reasoning_content = response.choices[0].message.content
     content = response.choices[0].message.content
     print(content)
+
+
+asyncio.run(chat_deepseek_in_openai())
 #
 # tools =AstraTools()
 # ans =send_openai_request(
@@ -174,3 +207,13 @@ def chat_deepseek_in_openai():
 # tool=ans.choices[0].message.tool_calls
 # if tool:
 #     tools.tool_parser(tool)
+from datetime import datetime
+
+
+def transform_timestamp():
+    # 当前时间
+    current_datetime = datetime.now()
+
+    # 格式化为 SQLite 兼容的时间戳格式
+    sqlite_timestamp = current_datetime.strftime("%Y-%m-%d %H:%M:%S")
+    return sqlite_timestamp

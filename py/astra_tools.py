@@ -2,7 +2,7 @@ import json
 
 import requests
 
-from py.qq_bot import QQBot
+from qq_bot import QQBot
 from tool import Tool, astratool
 
 
