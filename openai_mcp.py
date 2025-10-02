@@ -1,4 +1,3 @@
-
 from agents.mcp.server import MCPServerSse
 import asyncio
 from agents import Agent, Runner, AsyncOpenAI, OpenAIChatCompletionsModel
@@ -25,7 +24,7 @@ async def run(mcp_server: MCPServer):
 
     )
 
-    message = "你好"
+    message = "请问荆州市的天气怎么样？"
     print(f"Running: {message}")
     result = await Runner.run(starting_agent=agent, input=message)
     print(result.final_output)

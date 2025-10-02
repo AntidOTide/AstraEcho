@@ -1,13 +1,15 @@
-from AstraChart import AstraChart
 from AstraConfig import AstraConfig
 from flask import Flask
+from AstraCore import AstraCore
 from .AstraRoute import AstraRoute
 
 
 class AstraNex:
-    def __init__(self,db_connection):
+    def __init__(self,db_connection,astra_core:AstraCore):
         self.client = None
         self.port = None
+        self.db_connection =db_connection
+        self.astra_core = astra_core
         self._get_astra_nex_config()
         self.init_routes()
 
@@ -16,12 +18,9 @@ class AstraNex:
 
     def init_routes(self):
         self.client = Flask(__name__)
-        AstraRoute(self.client,self.db_connection)
+        AstraRoute(self.client,self.db_connection,self.astra_core)
 
     def run(self):
         self.client.run(port=self.port)
 
 
-if __name__ == '__main__':
-    ins = AstraNex()
-    ins.run()

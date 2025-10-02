@@ -6,7 +6,7 @@ readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
     "easyquotation>=0.7.7",
-    "flask>=3.1.2",
+    "flask[async]>=3.1.2",
     "loguru>=0.7.3",
     "mcp>=1.14.1",
     "openai>=1.108.0",

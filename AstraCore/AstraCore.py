@@ -1,12 +1,14 @@
-import asyncio
-
 from openai import AsyncOpenAI
-
 from AstraConfig import AstraConfig
+from AstraNex import AstraLogger
+import asyncio
+from agents import Agent, Runner, OpenAIChatCompletionsModel
+from agents.mcp import MCPServer
 
 class AstraCore:
     def __init__(self):
         self.client = None
+        AstraLogger.info("正在配置  |星核|  AstraCore")
         self.init_openai()
 
     def init_openai(self):
@@ -33,6 +35,21 @@ class AstraCore:
             # 捕获异常并返回错误信息
             raise Exception(f"Error occurred: {str(e)}")
 
+    async def run_agent(self,mcp_server: MCPServer,message: list|str):
+        agent = Agent(
+            name="Assistant",
+            instructions="",
+            mcp_servers=[mcp_server],
+            model=OpenAIChatCompletionsModel(
+                model="gpt-4o-mini",
+                openai_client=self.client,
+            ),
+        )
+
+        print(f"Running: {message}")
+        result = await Runner.run(starting_agent=agent, input=message)
+        print(result.final_output)
+        return result.final_output
 
 async def main():
     AstraConfig.load(r"../config/config.json")
