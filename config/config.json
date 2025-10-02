@@ -1,0 +1,21 @@
+{
+  "AstraEcho": "1.0.0",
+  "AstraCore": {
+    "api": {
+      "api_key": "sk-pHWCo00H54775580D97CT3BlbKFJ3e794eD16949431A84d1",
+      "api_base": "https://cn2us02.opapi.win/v1",
+      "model": "gpt-5-nano",
+      "temperature": 1,
+      "max_tokens": 1994,
+      "max_history_rounds": 6
+    }
+  },
+  "AstraChart": {
+    "db_type": "sqlite",
+    "db_path": "db/AstraEcho.db"
+  },
+  "AstraWindow": "input",
+  "AstraNex": {
+    "port": 1145
+  }
+}
