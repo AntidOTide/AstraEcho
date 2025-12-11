@@ -6,12 +6,13 @@ from AstraConfig import AstraConfig
 from AstraNex import AstraLogger
 
 # 全局加载配置文件
-AstraConfig.load("config/config.json")
+
 
 
 
 
 if __name__ == '__main__':
+    AstraConfig.load("config/config.json")
     mcp_proc = subprocess.Popen(
         [sys.executable, "AstraLink/mcp_server.py"],
         stdout=sys.stdout,

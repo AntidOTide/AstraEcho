@@ -1,3 +1,5 @@
+import time
+
 from AstraChart import AstraChart
 from AstraConfig import AstraConfig
 from AstraCore import AstraCore
@@ -14,7 +16,8 @@ class AstraEcho:
         self.astra_chart =AstraChart()
         self.astra_nex =AstraNex(self.astra_chart.conn,self.astra_core)
         self.astra_nex.run()
-
+        time.sleep(2)
+        AstraLogger.info("AstraEcho配置完毕")
 
 if __name__ == '__main__':
     AstraConfig.load(r"config/config.json")

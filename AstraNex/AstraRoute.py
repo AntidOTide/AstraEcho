@@ -1,10 +1,12 @@
+
 from agents.mcp import MCPServerSse
 from flask import Flask, request, jsonify
 from sqlite3 import Connection
 
 from AstraCore import AstraCore
+from utils import JsonLoader, JsonWriter
 
-
+temp_memory = []
 class AstraRoute:
     def __init__(self, app: Flask, db_connection: Connection,astra_core:AstraCore):
         self.app = app
@@ -19,21 +21,39 @@ class AstraRoute:
 
         @self.app.route("/send", methods=["GET"])
         async def send():
+
             message = request.args.get('message')
+            path = "memory_test/agent_memory.json"
+            memory = JsonLoader.load_json_file(path)
+            print(memory)
+            human_message = {
+                "role":"user",
+                "content":message
+            }
+            memory_list:list = memory["agent_memory"]['memory']
+            memory_list.append(human_message)
             async with MCPServerSse(
                     name="SSE Python Server",
                     params={
                         "url": "http://localhost:8000/sse",
                     },
             ) as server:
-                ans = await self.core_ins.run_agent(server,message)
+                ans = await self.core_ins.run_agent(server,memory_list)
             print(ans)
+            ai_message = {
+                "role":"assistant",
+                "content":ans
+            }
+            memory_list.append(ai_message)
+            print(memory)
+            JsonWriter.write_json(memory,path)
             return ans
-
-
-
-
-
+        @self.app.route("/chat",methods = ["POST"])
+        def chat():
+            d = {
+                "device":"",
+                "chat_messages":""
+            }
         @self.app.route("/add_chat_message", methods=["POST"])
         def add_chat_message():
             """添加回话数据"""

@@ -2,7 +2,7 @@ from openai import AsyncOpenAI
 from AstraConfig import AstraConfig
 from AstraNex import AstraLogger
 import asyncio
-from agents import Agent, Runner, OpenAIChatCompletionsModel
+from agents import Agent, Runner, OpenAIChatCompletionsModel, TResponseInputItem
 from agents.mcp import MCPServer
 
 class AstraCore:
@@ -35,7 +35,7 @@ class AstraCore:
             # 捕获异常并返回错误信息
             raise Exception(f"Error occurred: {str(e)}")
 
-    async def run_agent(self,mcp_server: MCPServer,message: list|str):
+    async def run_agent(self,mcp_server: MCPServer,message: str | list[TResponseInputItem]):
         agent = Agent(
             name="Assistant",
             instructions="",
