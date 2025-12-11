@@ -1,3 +1,4 @@
+from sqlite3 import Connection
 from AstraConfig import AstraConfig
 from flask import Flask
 from AstraCore import AstraCore
@@ -5,7 +6,7 @@ from .AstraRoute import AstraRoute
 
 
 class AstraNex:
-    def __init__(self,db_connection,astra_core:AstraCore):
+    def __init__(self,db_connection:Connection,astra_core:AstraCore):
         self.client = None
         self.port = None
         self.db_connection =db_connection
