@@ -1,17 +1,22 @@
-
-from agents.mcp import MCPServerSse
+from agents import RunResult
+from agents.mcp import MCPServerSse, MCPServer
 from flask import Flask, request, jsonify
 from sqlite3 import Connection
 
 from AstraCore import AstraCore
+from AstraLink import AstraLink
 from utils import JsonLoader, JsonWriter
 
 temp_memory = []
 class AstraRoute:
-    def __init__(self, app: Flask, db_connection: Connection,astra_core:AstraCore):
+    def __init__(self, app: Flask,
+                 db_connection: Connection,
+                 astra_core:AstraCore,
+                 astra_link:AstraLink):
         self.app = app
         self.db_connection = db_connection
         self.core_ins = astra_core
+        self.astra_link = astra_link
         self.register_routes()
 
     def register_routes(self):
@@ -32,22 +37,26 @@ class AstraRoute:
             }
             memory_list:list = memory["agent_memory"]['memory']
             memory_list.append(human_message)
-            async with MCPServerSse(
-                    name="SSE Python Server",
-                    params={
-                        "url": "http://localhost:8000/sse",
-                    },
-            ) as server:
-                ans = await self.core_ins.run_agent(server,memory_list)
+            server_list :list[MCPServer]= []
+            for server in self.astra_link.mcp_server_list:
+                async with MCPServerSse(
+                        name=server.name,
+                        params={
+                            "url": f"http://{server.host}:{server.port}/sse",
+                        },
+                ) as sse_server:
+                    server_list.append(sse_server)
+            ans:RunResult = await self.core_ins.run_agent(server_list,memory_list)
             print(ans)
             ai_message = {
                 "role":"assistant",
-                "content":ans
+                "content":ans.final_output
             }
             memory_list.append(ai_message)
             print(memory)
             JsonWriter.write_json(memory,path)
-            return ans
+            return ans.final_output
+
         @self.app.route("/chat",methods = ["POST"])
         def chat():
             d = {
