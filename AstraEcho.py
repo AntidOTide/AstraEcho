@@ -3,8 +3,10 @@ import time
 from AstraChart import AstraChart
 from AstraConfig import AstraConfig
 from AstraCore import AstraCore
+from AstraLink import AstraLink
 from AstraNex import AstraNex
 from AstraNex import AstraLogger
+from AstraLink.mcp_server import mcp
 
 class AstraEcho:
     def __init__(self):
@@ -14,11 +16,16 @@ class AstraEcho:
         AstraLogger.info("正在配置AstraEcho")
         self.astra_core =AstraCore()
         self.astra_chart =AstraChart()
-        self.astra_nex =AstraNex(self.astra_chart.conn,self.astra_core)
+        self.astra_link = AstraLink()
+
+        self.astra_link.add_mcp_server(mcp)
+        self.astra_link.start_all_mcp_server_in_thread()
+
+
+        self.astra_nex =AstraNex(self.astra_chart.conn,self.astra_core,self.astra_link)
         self.astra_nex.run()
         time.sleep(2)
-        AstraLogger.info("AstraEcho配置完毕")
+
 
 if __name__ == '__main__':
-    AstraConfig.load(r"config/config.json")
-    astra_echo = AstraEcho()
+    pass

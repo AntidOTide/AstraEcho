@@ -9,27 +9,19 @@
       },
       {
         "role": "user",
-        "content": "你好"
+        "content": "我的设备信息是什么"
       },
       {
         "role": "assistant",
-        "content": "你好！有什么我可以帮忙的吗？"
+        "content": "这是你设备的信息摘要：\n\n- 处理器架构：AMD64\n- 处理器型号：AMD64 Family 25 Model 33 Stepping 2, AuthenticAMD\n- 系统架构：64 位\n- 平台信息/操作系统：Windows 10 10.0.19045 SP0\n\n如果你想要更多细节（如内存容量、显卡、网络信息等），告诉我你想查看的项，我可以继续获取并整理给你。"
       },
       {
         "role": "user",
-        "content": "我的设备是什么？"
+        "content": "我的设备信息是什么"
       },
       {
         "role": "assistant",
-        "content": "你的设备信息如下：\n\n- 处理器架构：AMD64\n- 处理器类型：AMD64 Family 25 Model 80 Stepping 0, AuthenticAMD\n- 系统架构：64bit\n- 平台信息：Windows 10 (版本 10.0.22631-SP0)\n\n还有其他我可以帮助你的吗？"
-      },
-      {
-        "role": "user",
-        "content": "我刚刚问了你什么问题？"
-      },
-      {
-        "role": "assistant",
-        "content": "你刚刚问了“我的设备是什么？”我随后为你提供了设备的相关信息。还有其他我可以帮你解答的问题吗？"
+        "content": "以下是你设备的当前信息摘要：\n\n- 处理器架构：AMD64\n- 处理器型号：AMD64 Family 25 Model 33 Stepping 2, AuthenticAMD\n- 系统位宽：64 位\n- 平台信息/操作系统：Windows 10 10.0.19045 SP0\n\n如果你想了解更详细的硬件信息（如内存容量、显卡、网卡、磁盘信息等），告诉我你关心的项，我可以继续查询并整理给你。"
       }
     ]
   }

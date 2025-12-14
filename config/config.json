@@ -4,7 +4,8 @@
     "api": {
       "api_key": "sk-pHWCo00H54775580D97CT3BlbKFJ3e794eD16949431A84d1",
       "api_base": "https://cn2us02.opapi.win/v1",
-      "model": "gpt-5-nano",
+      "model": "gpt-3.5-turbo",
+      "system_prompt": "You are a helpful AI",
       "temperature": 1,
       "max_tokens": 1994,
       "max_history_rounds": 6
@@ -18,8 +19,6 @@
     "mcp_server": {
       "mcp_address": "127.0.0.1",
       "mcp_port": 8000
-
-
     }
 
   },
