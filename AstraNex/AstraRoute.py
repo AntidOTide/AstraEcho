@@ -1,24 +1,23 @@
-import time
-
 from agents import RunResult
 from agents.mcp import MCPServerSse
 from flask import Flask, request, jsonify
 from sqlite3 import Connection
 
-from AstraCore import AstraCore
-from AstraLink import AstraLink
-from utils import JsonLoader, JsonWriter
+from openai.types.responses import EasyInputMessageParam
 
+from AstraCore.AstraMemory import AstraMemoryJson
+from AstraNex import AstraNex
 temp_memory = []
 class AstraRoute:
     def __init__(self, app: Flask,
                  db_connection: Connection,
-                 astra_core:AstraCore,
-                 astra_link:AstraLink):
+                 astra_nex:AstraNex,
+                 ):
         self.app = app
         self.db_connection = db_connection
-        self.core_ins = astra_core
-        self.astra_link = astra_link
+        self.core_ins = astra_nex.astra_core
+        self.astra_link = astra_nex.astra_link
+        self.astra_memory = astra_nex.astra_memory
         self.register_routes()
 
     @staticmethod
@@ -52,16 +51,14 @@ class AstraRoute:
 
         @self.app.route("/send", methods=["GET"])
         async def send():
-
-            message = request.args.get('message')
+            message:str = request.args.get('message')
             path = "memory_test/agent_memory.json"
-            memory = JsonLoader.load_json_file(path)
-            print(memory)
-            human_message = {
+            memory = self.astra_memory.load_json_memory(path)
+            human_message :EasyInputMessageParam = {
                 "role":"user",
                 "content":message
             }
-            memory_list:list = memory["agent_memory"]['memory']
+            memory_list = memory['memory']
             memory_list.append(human_message)
             configs = []
             servers = []
@@ -74,22 +71,52 @@ class AstraRoute:
                 )
                 servers = await self.run_with_multiple_servers(configs)
             ans:RunResult = await self.core_ins.run_agent(servers,memory_list)
-            print(ans)
             ai_message = {
                 "role":"assistant",
                 "content":ans.final_output
             }
             memory_list.append(ai_message)
-            print(memory)
-            JsonWriter.write_json(memory,path)
+            self.astra_memory.write_json_memory(memory, path)
             return ans.final_output
+
+        @self.app.route("/send", methods=["POST"])
+        async def send():
+            req = request.json
+            message: str = req['message']
+            id :int =req['id']
+            device:str =req['device']
+
+            # path = "memory_test/agent_memory.json"
+            # memory = self.astra_memory.load_json_memory(path)
+            human_message: EasyInputMessageParam = {
+                "role": "user",
+                "content": message
+            }
+            memory_list = memory['memory']
+            memory_list.append(human_message)
+            configs = []
+            servers = []
+            for server in self.astra_link.mcp_server_list:
+                configs.append(
+                    {
+                        "name": server.name,
+                        "url": f"http://{server.host}:{server.port}/sse"
+                    }
+                )
+                servers = await self.run_with_multiple_servers(configs)
+            ans: RunResult = await self.core_ins.run_agent(servers, memory_list)
+            ai_message = {
+                "role": "assistant",
+                "content": ans.final_output
+            }
+            memory_list.append(ai_message)
+            self.astra_memory.write_json_memory(memory, path)
+            return ans.final_output
+
 
         @self.app.route("/chat",methods = ["POST"])
         def chat():
-            d = {
-                "device":"",
-                "chat_messages":""
-            }
+            pass
         @self.app.route("/add_chat_message", methods=["POST"])
         def add_chat_message():
             """添加回话数据"""

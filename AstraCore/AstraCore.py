@@ -1,7 +1,7 @@
 from openai import AsyncOpenAI
 from AstraNex import AstraLogger
 from agents import Agent, Runner, OpenAIChatCompletionsModel, TResponseInputItem
-from agents.mcp import MCPServer, MCPServerSse
+from agents.mcp import MCPServerSse
 
 from config_accessor import OPENAI_API_KEY, OPENAI_API_BASE, OPENAI_MODEL, OPENAI_TEMPERATURE, OPENAI_PROMPT
 

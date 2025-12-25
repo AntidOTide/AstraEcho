@@ -1,34 +1,20 @@
 from sqlite3 import Connection
 from AstraConfig import AstraConfig
-from flask import Flask
 from AstraCore import AstraCore
+from AstraCore.AstraMemory.memory import AstraMemory
 from AstraLink import AstraLink
-from . import AstraLogger
-from .AstraRoute import AstraRoute
 
 
 class AstraNex:
     def __init__(self,db_connection:Connection,
                  astra_core:AstraCore,
-                 astra_link:AstraLink):
-        self.client = None
-        self.port = None
+                 astra_link:AstraLink,
+                 astra_memory:AstraMemory):
         self.db_connection =db_connection
         self.astra_core = astra_core
         self.astra_link = astra_link
+        self.astra_memory = astra_memory
 
-        self._get_astra_nex_config()
-        self.init_routes()
 
-    def _get_astra_nex_config(self):
-        self.port = AstraConfig.get("AstraNex").get("port")
-
-    def init_routes(self):
-        self.client = Flask(__name__)
-        AstraRoute(self.client,self.db_connection,self.astra_core,self.astra_link)
-
-    def run(self):
-        AstraLogger.info("AstraEcho配置完毕")
-        self.client.run(port=self.port)
 
 
